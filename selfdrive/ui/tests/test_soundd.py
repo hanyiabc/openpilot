@@ -19,7 +19,7 @@ def test_soundd():
   sound_to_play = [AudibleAlert.engage, AudibleAlert.disengage, AudibleAlert.refuse, AudibleAlert.prompt, \
                    AudibleAlert.promptRepeat, AudibleAlert.promptDistracted, AudibleAlert.warningSoft, AudibleAlert.warningImmediate]
 
-  SOUND_PLAY_TIME = 2
+  SOUND_PLAY_TIME = 5
 
   for i in range(len(sound_to_play)):
     def send_sound(sound, play_time, weighted_sound=45):
