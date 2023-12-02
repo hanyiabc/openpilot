@@ -1,4 +1,6 @@
+import numpy as np
 import pytest
+import unittest
 import time
 
 from cereal import messaging, car
@@ -8,38 +10,49 @@ from openpilot.selfdrive.test.helpers import with_processes
 AudibleAlert = car.CarControl.HUDControl.AudibleAlert
 
 
-@pytest.mark.skip
-@with_processes(["soundd"])
-def test_soundd():
-  """Cycles through all sounds for 5 seconds each."""
-  time.sleep(2)
+@pytest.mark.tici
+class TestSoundd(unittest.TestCase):
+  SOUND_PLAY_TIME = 1
+  TOL = 0.2
 
-  pm = messaging.PubMaster(['controlsState', 'microphone'])
+  def _test_sound_level(self, db, ambient_db):
+    self.assertGreater(db, ambient_db + 5)
 
-  sound_to_play = [AudibleAlert.engage, AudibleAlert.disengage, AudibleAlert.refuse, AudibleAlert.prompt, \
-                   AudibleAlert.promptRepeat, AudibleAlert.promptDistracted, AudibleAlert.warningSoft, AudibleAlert.warningImmediate]
+  @with_processes(["soundd", "micd"])
+  def test_sound(self):
+    time.sleep(2)
 
-  SOUND_PLAY_TIME = 5
+    pm = messaging.PubMaster(['controlsState'])
+    sm = messaging.SubMaster(['microphone'])
 
-  for i in range(len(sound_to_play)):
-    def send_sound(sound, play_time, weighted_sound=45):
-      play_start = time.monotonic()
-      while time.monotonic() - play_start < play_time:
-        m1 = messaging.new_message('controlsState')
-        m1.controlsState.alertSound = sound
+    sounds_to_play = [AudibleAlert.engage, AudibleAlert.disengage, AudibleAlert.refuse, AudibleAlert.prompt, \
+                    AudibleAlert.promptRepeat, AudibleAlert.promptDistracted, AudibleAlert.warningSoft, AudibleAlert.warningImmediate]
+    
+    for i in range(len(sounds_to_play)):
+      def send_sound(sound, play_time):
+        db_history = []
 
-        m2 = messaging.new_message('microphone')
-        m2.microphone.filteredSoundPressureWeightedDb = weighted_sound
+        play_start = time.monotonic()
+        while time.monotonic() - play_start < play_time:
+          sm.update(0)
 
-        pm.send('controlsState', m1)
-        pm.send('microphone', m2)
-        time.sleep(0.01)
+          if sm.updated['microphone']:
+            db_history.append(sm["microphone"].soundPressureWeightedDb)
 
-    for ambient_sound_level in [20, 30, 40, 50, 60, 70]:
-      print(f"Testing {sound_to_play[i]} at {ambient_sound_level} dB")
-      send_sound(AudibleAlert.none, 1) # 1 second gap between sounds
-      send_sound(sound_to_play[i], SOUND_PLAY_TIME, ambient_sound_level)
+          m1 = messaging.new_message('controlsState')
+          m1.controlsState.alertSound = sound
+
+          pm.send('controlsState', m1)
+          time.sleep(0.01)
+        
+        if sound == AudibleAlert.none:
+          self.ambient_db = np.mean(db_history)
+        else:
+          self._test_sound_level(np.mean(db_history), self.ambient_db)
+        
+      send_sound(AudibleAlert.none, self.SOUND_PLAY_TIME*2)
+      send_sound(sounds_to_play[i], self.SOUND_PLAY_TIME)
 
 
 if __name__ == "__main__":
-  test_soundd()
+  unittest.main()
