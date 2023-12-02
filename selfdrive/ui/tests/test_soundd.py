@@ -15,8 +15,19 @@ class TestSoundd(unittest.TestCase):
   SOUND_PLAY_TIME = 1
   TOL = 0.2
 
-  def _test_sound_level(self, db, ambient_db):
-    self.assertGreater(db, ambient_db + 5)
+  SOUNDS_TO_TEST = [AudibleAlert.engage, AudibleAlert.disengage, AudibleAlert.refuse, AudibleAlert.prompt, \
+                    AudibleAlert.promptRepeat, AudibleAlert.promptDistracted, AudibleAlert.warningSoft, AudibleAlert.warningImmediate]
+
+  REFERENCE_LEVELS = { # dB above ambient
+    AudibleAlert.engage: 11.5,
+    AudibleAlert.disengage: 14.5,
+    AudibleAlert.refuse: 16.5,
+    AudibleAlert.prompt: 13,
+    AudibleAlert.promptRepeat: 13,
+    AudibleAlert.promptDistracted: 18.5,
+    AudibleAlert.warningSoft: 22.5,
+    AudibleAlert.warningImmediate: 15.3,
+  }
 
   @with_processes(["soundd", "micd"])
   def test_sound(self):
@@ -25,10 +36,9 @@ class TestSoundd(unittest.TestCase):
     pm = messaging.PubMaster(['controlsState'])
     sm = messaging.SubMaster(['microphone'])
 
-    sounds_to_play = [AudibleAlert.engage, AudibleAlert.disengage, AudibleAlert.refuse, AudibleAlert.prompt, \
-                    AudibleAlert.promptRepeat, AudibleAlert.promptDistracted, AudibleAlert.warningSoft, AudibleAlert.warningImmediate]
+    self.levels_for_sounds = {}
 
-    for i in range(len(sounds_to_play)):
+    for i in range(len(self.SOUNDS_TO_TEST)):
       def send_sound(sound, play_time):
         db_history = []
 
@@ -48,11 +58,16 @@ class TestSoundd(unittest.TestCase):
         if sound == AudibleAlert.none:
           self.ambient_db = np.mean(db_history)
         else:
-          self._test_sound_level(np.mean(db_history), self.ambient_db)
+          self.levels_for_sounds[sound] = np.mean(db_history) - self.ambient_db
 
       send_sound(AudibleAlert.none, self.SOUND_PLAY_TIME*2)
-      send_sound(sounds_to_play[i], self.SOUND_PLAY_TIME)
+      send_sound(self.SOUNDS_TO_TEST[i], self.SOUND_PLAY_TIME)
 
+    for sound in self.REFERENCE_LEVELS:
+      with self.subTest(sound=sound):
+        self.assertLess(self.levels_for_sounds[sound], self.REFERENCE_LEVELS[sound] * (1+self.TOL))
+        self.assertGreater(self.levels_for_sounds[sound], self.REFERENCE_LEVELS[sound] * (1-self.TOL))
 
+    
 if __name__ == "__main__":
   unittest.main()
