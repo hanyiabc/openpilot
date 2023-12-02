@@ -27,7 +27,7 @@ class TestSoundd(unittest.TestCase):
 
     sounds_to_play = [AudibleAlert.engage, AudibleAlert.disengage, AudibleAlert.refuse, AudibleAlert.prompt, \
                     AudibleAlert.promptRepeat, AudibleAlert.promptDistracted, AudibleAlert.warningSoft, AudibleAlert.warningImmediate]
-    
+
     for i in range(len(sounds_to_play)):
       def send_sound(sound, play_time):
         db_history = []
@@ -44,12 +44,12 @@ class TestSoundd(unittest.TestCase):
 
           pm.send('controlsState', m1)
           time.sleep(0.01)
-        
+
         if sound == AudibleAlert.none:
           self.ambient_db = np.mean(db_history)
         else:
           self._test_sound_level(np.mean(db_history), self.ambient_db)
-        
+
       send_sound(AudibleAlert.none, self.SOUND_PLAY_TIME*2)
       send_sound(sounds_to_play[i], self.SOUND_PLAY_TIME)
 
