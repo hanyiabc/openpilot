@@ -68,6 +68,6 @@ class TestSoundd(unittest.TestCase):
         self.assertLess(self.levels_for_sounds[sound], self.REFERENCE_LEVELS[sound] * (1+self.TOL))
         self.assertGreater(self.levels_for_sounds[sound], self.REFERENCE_LEVELS[sound] * (1-self.TOL))
 
-    
+
 if __name__ == "__main__":
   unittest.main()
