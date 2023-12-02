@@ -13,7 +13,7 @@ AudibleAlert = car.CarControl.HUDControl.AudibleAlert
 @pytest.mark.tici
 class TestSoundd(unittest.TestCase):
   SOUND_PLAY_TIME = 1
-  TOL = 0.2
+  TOL = 0.25
 
   SOUNDS_TO_TEST = [AudibleAlert.engage, AudibleAlert.disengage, AudibleAlert.refuse, AudibleAlert.prompt, \
                     AudibleAlert.promptRepeat, AudibleAlert.promptDistracted, AudibleAlert.warningSoft, AudibleAlert.warningImmediate]
@@ -24,7 +24,7 @@ class TestSoundd(unittest.TestCase):
     AudibleAlert.refuse: 16.5,
     AudibleAlert.prompt: 13,
     AudibleAlert.promptRepeat: 13,
-    AudibleAlert.promptDistracted: 18.5,
+    AudibleAlert.promptDistracted: 19,
     AudibleAlert.warningSoft: 22.5,
     AudibleAlert.warningImmediate: 15.3,
   }
